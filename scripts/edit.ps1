@@ -1,6 +1,6 @@
-#requires -Version 5.1
+﻿#requires -Version 5.1
 <#
-  Interactive edit flow: open src/card.toml, rebuild both SVGs, preview, publish.
+  Interactive edit flow: open src/card.toml, rebuild both SVGs, publish on "y".
 
   Called by card.cmd, but works standalone:
     .\scripts\edit.ps1
@@ -58,13 +58,12 @@ finally {
     Pop-Location
 }
 
-Start-Process (Join-Path $root 'scripts\preview.html')
 Write-Host ""
-Write-Host "Preview opened in the browser. Publish to GitHub? [y/N] " -NoNewline -ForegroundColor Yellow
+Write-Host "Publish to GitHub? [y/N] " -NoNewline -ForegroundColor Yellow
 $answer = Read-Host
 if ($answer -notmatch '^(y|yes|д|да)$') {
     Write-Host "Saved locally, not published. Run .\scripts\publish.ps1 when ready."
     exit 0
 }
 
-& (Join-Path $PSScriptRoot 'publish.ps1') -Message "content: update card text" -OpenProfile
+& (Join-Path $PSScriptRoot 'publish.ps1') -Message "content: update card text"
