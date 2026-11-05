@@ -10,13 +10,14 @@ is the whole point: edit one file, get two consistent panels.
 
 from __future__ import annotations
 
+import calendar
 import html
 import json
 import re
 import sys
 import tomllib
 import unicodedata
-from datetime import date, datetime, timedelta, timezone
+from datetime import date, datetime, timezone
 from pathlib import Path
 from xml.etree import ElementTree
 
@@ -130,15 +131,14 @@ def human_age(created_at: object, today: date | None = None) -> str:
         return ""
 
     today = today or datetime.now(timezone.utc).date()
-    years = today.year - created.year
-    months = today.month - created.month
-    days = today.day - created.day
-    if days < 0:
-        months -= 1
-        days += (today.replace(day=1) - timedelta(days=1)).day
-    if months < 0:
-        years -= 1
-        months += 12
+    if created > today:
+        return ""
+
+    months = 0
+    while add_months(created, months + 1) <= today:
+        months += 1
+    years, months = divmod(months, 12)
+    days = (today - add_months(created, years * 12 + months)).days
 
     parts: list[str] = []
     if years:
@@ -148,6 +148,14 @@ def human_age(created_at: object, today: date | None = None) -> str:
     if days or not parts:
         parts.append(plural(days, "day"))
     return ", ".join(parts)
+
+
+def add_months(start: date, months: int) -> date:
+    """Same day-of-month `months` later, clamped to the end of short months."""
+    index = start.month - 1 + months
+    year = start.year + index // 12
+    month = index % 12 + 1
+    return date(year, month, min(start.day, calendar.monthrange(year, month)[1]))
 
 
 def stats_rows(stats: dict) -> list[list[str]]:
