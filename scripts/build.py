@@ -11,6 +11,7 @@ is the whole point: edit one file, get two consistent panels.
 from __future__ import annotations
 
 import calendar
+import hashlib
 import html
 import json
 import re
@@ -327,10 +328,34 @@ def build() -> dict[str, str]:
     return rendered
 
 
+def update_readme(version: str, check_only: bool = False) -> bool:
+    """Adds or updates a cache-buster query (?v=hash) in README.md so GitHub and
+    browsers never serve stale SVGs from cache."""
+    readme_path = ROOT / "README.md"
+    if not readme_path.exists():
+        return True
+    text = readme_path.read_text(encoding="utf-8")
+    new_text = re.sub(
+        r'assets/(dark|light)_mode\.svg(?:\?v=[a-f0-9]+)?',
+        rf'assets/\1_mode.svg?v={version}',
+        text,
+    )
+    if check_only:
+        return new_text == text
+    if new_text != text:
+        readme_path.write_text(new_text, encoding="utf-8", newline="\n")
+        print(f"updated README.md cache buster (?v={version})")
+    return True
+
+
 def main() -> None:
     rendered = build()
     check_only = "--check" in sys.argv[1:]
     stale: list[str] = []
+
+    version = hashlib.sha256(
+        (rendered.get("dark", "") + rendered.get("light", "")).encode("utf-8")
+    ).hexdigest()[:8]
 
     for theme, content in rendered.items():
         path = ASSETS / f"{theme}_mode.svg"
@@ -351,9 +376,13 @@ def main() -> None:
         print(f"built {path.relative_to(ROOT)} ({len(content.encode('utf-8')):,} bytes)")
 
     if check_only:
+        if not update_readme(version, check_only=True):
+            stale.append("README.md")
         if stale:
             die("устарели: " + ", ".join(stale) + " - запусти python scripts/build.py")
         print("assets are up to date")
+    else:
+        update_readme(version, check_only=False)
 
 
 if __name__ == "__main__":

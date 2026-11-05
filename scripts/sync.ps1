@@ -28,7 +28,7 @@ param()
 
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
-$generated = @('assets/dark_mode.svg', 'assets/light_mode.svg', 'src/stats.json')
+$generated = @('assets/dark_mode.svg', 'assets/light_mode.svg', 'src/stats.json', 'README.md')
 
 function Fail([string]$msg) {
     Write-Host $msg -ForegroundColor Red

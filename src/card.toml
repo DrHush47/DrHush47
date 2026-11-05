@@ -14,7 +14,7 @@ handle = "DrHush47"
 title = "DrHush47"
 rows = [
   ["Name", "DrHush"],
-  ["Bio", "1Medical student"],
+  ["Bio", "Medical student"],
   ["CLI", "Antigravity · OpenCode · Claude Code"],
   ["Fav track", "Aphex Twin - Alberto Balsalm"],
 ]

@@ -13,6 +13,7 @@ param(
 
 $ErrorActionPreference = 'Stop'
 try { [Console]::OutputEncoding = [Text.Encoding]::UTF8 } catch { }
+try { [Console]::InputEncoding = [Text.Encoding]::UTF8 } catch { }
 $root = Split-Path -Parent $PSScriptRoot
 $config = Join-Path $root 'src\card.toml'
 
@@ -40,7 +41,13 @@ if (-not $Editor) {
 
 $before = Get-Content -LiteralPath $config -Raw -Encoding UTF8
 
+Write-Host ""
 Write-Host "Открытие $config в $Editor..." -ForegroundColor Cyan
+if ($Editor -eq 'notepad') {
+    Write-Host ">>> ВНИМАНИЕ: сохраните файл (Ctrl+S) в Блокноте перед его закрытием! <<<" -ForegroundColor Yellow
+}
+Write-Host ""
+
 if ($Editor -eq 'notepad') {
     Start-Process notepad -ArgumentList "`"$config`"" -Wait
 } else {
@@ -49,9 +56,36 @@ if ($Editor -eq 'notepad') {
 }
 
 $after = Get-Content -LiteralPath $config -Raw -Encoding UTF8
-if ($before -eq $after) {
-    Write-Host "Изменений нет. Карточка не обновлялась." -ForegroundColor Gray
-    exit 0
+
+# Проверяем изменения:
+# 1) Изменился ли файл во время текущей сессии ($before -ne $after)
+# 2) Либо в файле уже есть незакоммиченные правки относительно git HEAD
+$hasSessionEdits = ($before -ne $after)
+$hasGitEdits = $false
+Push-Location $root
+try {
+    $diff = git diff HEAD -- src/card.toml
+    if ($diff) { $hasGitEdits = $true }
+}
+finally {
+    Pop-Location
+}
+
+if (-not $hasSessionEdits -and -not $hasGitEdits) {
+    Write-Host ""
+    Write-Host "В файле src/card.toml изменений не обнаружено." -ForegroundColor Yellow
+    Write-Host "Пересобрать карточку и обновить статистику всё равно? [y/N] " -NoNewline -ForegroundColor Yellow
+    $force = Read-Host
+    if ($force -notmatch '^(y|yes|д|да)$') {
+        Write-Host "Выход без изменений." -ForegroundColor Gray
+        exit 0
+    }
+}
+elseif ($hasSessionEdits) {
+    Write-Host "Изменения в src/card.toml сохранены." -ForegroundColor Green
+}
+elseif ($hasGitEdits) {
+    Write-Host "Обнаружены незакоммиченные изменения в src/card.toml." -ForegroundColor Green
 }
 
 Push-Location $root
