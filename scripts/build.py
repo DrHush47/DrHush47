@@ -30,9 +30,9 @@ PANEL_X = 482.4
 FONT_SIZE = 16
 CHAR_W = 9.6
 LINE_H = 20.0
-Y_START = 208.2
 COLS = 53  # characters per value line; headers are one wider
-BOTTOM_PAD = 24.0
+PANEL_PAD = 24.0  # breathing room above and below the panel
+BASELINE = LINE_H * 0.75  # baseline inside a 20px line box
 
 FONT = "'Consolas', 'Menlo', 'DejaVu Sans Mono', monospace"
 
@@ -45,6 +45,8 @@ PALETTES = {
         "key": "#ffa657",
         "dots": "#484f58",
         "value": "#c9d1d9",
+        "add": "#3fb950",
+        "del": "#f85149",
     },
     "light": {
         "bg": "#ffffff",
@@ -54,6 +56,8 @@ PALETTES = {
         "key": "#953800",
         "dots": "#8c959f",
         "value": "#24292f",
+        "add": "#1a7f37",
+        "del": "#cf222e",
     },
 }
 
@@ -92,14 +96,34 @@ def header_line(y: float, title: str, p: dict[str, str]) -> str:
     )
 
 
-def row_line(y: float, key: str, value: str, p: dict[str, str]) -> str:
+def value_spans(value: str, p: dict[str, str], style: str = "") -> str:
+    """Value markup. style="diff" colours the add/remove halves of (N++, N--)."""
+    text = value.strip()
+    if (
+        style == "diff"
+        and text.startswith("(")
+        and text.endswith(")")
+        and (parts := text[1:-1].partition(", "))[1]
+    ):
+        left, _, right = parts
+        return (
+            f'<tspan fill="{p["value"]}">(</tspan>'
+            f'<tspan fill="{p["add"]}">{esc(left)}</tspan>'
+            f'<tspan fill="{p["value"]}">, </tspan>'
+            f'<tspan fill="{p["del"]}">{esc(right)}</tspan>'
+            f'<tspan fill="{p["value"]}">)</tspan>'
+        )
+    return f'<tspan fill="{p["value"]}">{esc(value)}</tspan>'
+
+
+def row_line(y: float, key: str, value: str, p: dict[str, str], style: str = "") -> str:
     if key:
         prefix = f". {key}: "
         dots = COLS - len(prefix) - 1 - len(value)
         if dots < 2:
             die(f"строка '{key}': значение не влезает в панель ({len(value)} символов)")
         head = f'<tspan fill="{p["key"]}">{esc(prefix)}</tspan>'
-        tail = " " + value
+        tail = value_spans(" " + value, p)
     else:
         # Continuation line (the (+/--) counters): right-aligned like a value,
         # but without a key of its own.
@@ -107,13 +131,13 @@ def row_line(y: float, key: str, value: str, p: dict[str, str]) -> str:
         if dots < 2:
             die(f"строка-продолжение: значение не влезает в панель ({len(value)} символов)")
         head = ""
-        tail = value
+        tail = value_spans(value, p, style)
     return (
         f'  <text x="{PANEL_X}" y="{fmt_y(y)}" font-family="{FONT}"'
         f' xml:space="preserve" font-size="{FONT_SIZE}">'
         f'{head}'
         f'<tspan fill="{p["dots"]}">{"." * dots}</tspan>'
-        f'<tspan fill="{p["value"]}">{esc(tail)}</tspan></text>'
+        f'{tail}</text>'
     )
 
 
@@ -180,7 +204,7 @@ def stats_rows(stats: dict) -> list[list[str]]:
     added = stats.get("loc_add")
     removed = stats.get("loc_del")
     if isinstance(added, int) and isinstance(removed, int):
-        rows.append(["", f"({added:,}++, {removed:,}--)"])
+        rows.append(["", f"({added:,}++, {removed:,}--)", "diff"])
 
     return rows
 
@@ -220,27 +244,36 @@ def expand_blocks(blocks: list[dict], stats: dict | None) -> list[dict]:
     return expanded
 
 
-def render_panel(blocks: list[dict], p: dict[str, str]) -> tuple[list[str], float]:
+def render_panel(blocks: list[dict], p: dict[str, str], y_start: float) -> tuple[list[str], int]:
+    """Renders the panel and returns its lines plus the number of line steps."""
     lines: list[str] = []
-    y = Y_START
-    for block in blocks:
+    steps = 0
+    y = y_start
+    for index, block in enumerate(blocks):
+        if index:  # пустая строка между секциями
+            y += LINE_H
+            steps += 1
         title = block.get("title", "")
         if title:
             check_text("заголовок секции", title)
             lines.append(header_line(y, title, p))
             y += LINE_H
+            steps += 1
         for row in block.get("rows", []):
-            if not isinstance(row, list) or len(row) != 2:
-                die(f"строка в секции '{title}' должна быть [ключ, значение]")
+            if not isinstance(row, list) or len(row) not in (2, 3):
+                die(f"строка в секции '{title}' должна быть [ключ, значение] или [ключ, значение, стиль]")
             key, value = (str(row[0]), str(row[1]))
+            style = str(row[2]) if len(row) == 3 else ""
+            if style not in ("", "diff"):
+                die(f"строка '{key or 'продолжение'}': неизвестный стиль '{style}'")
             label = f"'{key}'" if key else "продолжение"
             if key:
                 check_text(f"ключ {label}", key)
             check_text(f"значение {label}", value)
-            lines.append(row_line(y, key, value, p))
+            lines.append(row_line(y, key, value, p, style))
             y += LINE_H
-        y += LINE_H  # пустая строка между секциями
-    return lines, y
+            steps += 1
+    return lines, steps
 
 
 def patch_geometry(svg: str, height: int) -> str:
@@ -275,8 +308,13 @@ def build() -> dict[str, str]:
         # тёмного фона, поэтому эти блоки принципиально разные.
         portrait = (SRC / f"portrait-{theme}.svg").read_text(encoding="utf-8").rstrip("\n")
         base_height = int(float(re.search(r'height="(\d+(?:\.\d+)?)"', portrait).group(1)))
-        lines, panel_end = render_panel(blocks, palette)
-        height = max(base_height, int(panel_end + BOTTOM_PAD))
+        # Two passes: the panel is vertically centred in the card, so its height
+        # decides both the card height and where the first baseline sits.
+        _, steps = render_panel(blocks, palette, 0.0)
+        panel_h = steps * LINE_H
+        height = max(base_height, int(panel_h + 2 * PANEL_PAD))
+        y_start = (height - panel_h) / 2 + BASELINE
+        lines, _ = render_panel(blocks, palette, y_start)
         body = patch_geometry(portrait, height)
         head, rest = body.split("\n", 1)
         body = (

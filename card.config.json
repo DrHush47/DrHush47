@@ -22,11 +22,11 @@
   },
   "geometry": {
     "width": 1029,
-    "height": 592,
-    "minHeight": 526,
+    "height": 526,
     "asciiCols": 88,
     "asciiFontSize": 8,
     "panelX": 482.4,
-    "panelFontSize": 16
+    "panelFontSize": 16,
+    "panelNote": "The text panel is vertically centred; the card only grows when the panel needs more room than the portrait."
   }
 }
