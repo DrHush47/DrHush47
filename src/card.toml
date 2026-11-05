@@ -4,6 +4,9 @@
 # rows = [[ключ, значение], ...] — порядок строк = порядок в карточке.
 # Точки, ширина панели и координаты считаются автоматически.
 # Не используй эмодзи и переводы строк: они ломают выравнивание.
+#
+# dynamic = "stats" - строки берутся из src/stats.json (scripts/fetch_stats.py).
+# Нет файла - секция просто не рисуется.
 
 handle = "DrHush47"
 
@@ -12,7 +15,12 @@ title = "DrHush47"
 rows = [
   ["Name", "DrHush"],
   ["Bio", "medical student"],
+  ["AI CLI", "Antigravity · OpenCode · Claude Code"],
 ]
+
+[[block]]
+title = "Stats"
+dynamic = "stats"
 
 [[block]]
 title = "Contact"

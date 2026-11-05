@@ -11,16 +11,19 @@ is the whole point: edit one file, get two consistent panels.
 from __future__ import annotations
 
 import html
+import json
 import re
 import sys
 import tomllib
 import unicodedata
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from xml.etree import ElementTree
 
 ROOT = Path(__file__).resolve().parent.parent
 SRC = ROOT / "src"
 ASSETS = ROOT / "assets"
+STATS = SRC / "stats.json"
 
 PANEL_X = 482.4
 FONT_SIZE = 16
@@ -89,17 +92,124 @@ def header_line(y: float, title: str, p: dict[str, str]) -> str:
 
 
 def row_line(y: float, key: str, value: str, p: dict[str, str]) -> str:
-    prefix = f". {key}: "
-    dots = COLS - len(prefix) - 1 - len(value)
-    if dots < 2:
-        die(f"строка '{key}': значение не влезает в панель ({len(value)} символов)")
+    if key:
+        prefix = f". {key}: "
+        dots = COLS - len(prefix) - 1 - len(value)
+        if dots < 2:
+            die(f"строка '{key}': значение не влезает в панель ({len(value)} символов)")
+        head = f'<tspan fill="{p["key"]}">{esc(prefix)}</tspan>'
+        tail = " " + value
+    else:
+        # Continuation line (the (+/--) counters): right-aligned like a value,
+        # but without a key of its own.
+        dots = COLS - len(value)
+        if dots < 2:
+            die(f"строка-продолжение: значение не влезает в панель ({len(value)} символов)")
+        head = ""
+        tail = value
     return (
         f'  <text x="{PANEL_X}" y="{fmt_y(y)}" font-family="{FONT}"'
         f' xml:space="preserve" font-size="{FONT_SIZE}">'
-        f'<tspan fill="{p["key"]}">{esc(prefix)}</tspan>'
+        f'{head}'
         f'<tspan fill="{p["dots"]}">{"." * dots}</tspan>'
-        f'<tspan fill="{p["value"]}"> {esc(value)}</tspan></text>'
+        f'<tspan fill="{p["value"]}">{esc(tail)}</tspan></text>'
     )
+
+
+def plural(n: int, word: str) -> str:
+    return f"{n} {word}" if n == 1 else f"{n} {word}s"
+
+
+def human_age(created_at: object, today: date | None = None) -> str:
+    """Calendar age from an ISO timestamp: '4 years, 5 months, 14 days'."""
+    if not isinstance(created_at, str):
+        return ""
+    try:
+        created = datetime.fromisoformat(created_at.replace("Z", "+00:00")).date()
+    except ValueError:
+        return ""
+
+    today = today or datetime.now(timezone.utc).date()
+    years = today.year - created.year
+    months = today.month - created.month
+    days = today.day - created.day
+    if days < 0:
+        months -= 1
+        days += (today.replace(day=1) - timedelta(days=1)).day
+    if months < 0:
+        years -= 1
+        months += 12
+
+    parts: list[str] = []
+    if years:
+        parts.append(plural(years, "year"))
+    if months:
+        parts.append(plural(months, "month"))
+    if days or not parts:
+        parts.append(plural(days, "day"))
+    return ", ".join(parts)
+
+
+def stats_rows(stats: dict) -> list[list[str]]:
+    """Rows for a block marked dynamic = "stats" (see scripts/fetch_stats.py)."""
+    rows: list[list[str]] = []
+
+    age = human_age(stats.get("created_at"))
+    if age:
+        rows.append(["Age", age])
+
+    for key, label in (
+        ("repos", "Repos"),
+        ("stars", "Stars"),
+        ("commits", "Commits"),
+        ("followers", "Followers"),
+        ("loc", "Lines of Code on GitHub"),
+    ):
+        value = stats.get(key)
+        if isinstance(value, int) and not isinstance(value, bool):
+            rows.append([label, f"{value:,}"])
+
+    added = stats.get("loc_add")
+    removed = stats.get("loc_del")
+    if isinstance(added, int) and isinstance(removed, int):
+        rows.append(["", f"({added:,}++, {removed:,}--)"])
+
+    return rows
+
+
+def load_stats() -> dict | None:
+    """src/stats.json is optional: without it the stats block is skipped, so a
+    fresh clone still builds and text edits never depend on the network."""
+    if not STATS.exists():
+        return None
+    try:
+        data = json.loads(STATS.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        print(f"warning: src/stats.json не читается ({exc}) - секция статистики пропущена", file=sys.stderr)
+        return None
+    if not isinstance(data, dict):
+        print("warning: src/stats.json должен быть объектом - секция статистики пропущена", file=sys.stderr)
+        return None
+    return data
+
+
+def expand_blocks(blocks: list[dict], stats: dict | None) -> list[dict]:
+    """Expands dynamic blocks in place order; drops them when there is no data."""
+    expanded: list[dict] = []
+    for block in blocks:
+        kind = block.get("dynamic")
+        if kind is None:
+            expanded.append(block)
+            continue
+        if kind != "stats":
+            die(f"секция '{block.get('title', '')}': неизвестный dynamic = '{kind}'")
+        rows = stats_rows(stats) if stats else []
+        if not rows:
+            continue
+        merged = dict(block)
+        merged["rows"] = list(block.get("rows", [])) + rows
+        expanded.append(merged)
+    return expanded
 
 
 def render_panel(blocks: list[dict], p: dict[str, str]) -> tuple[list[str], float]:
@@ -115,8 +225,10 @@ def render_panel(blocks: list[dict], p: dict[str, str]) -> tuple[list[str], floa
             if not isinstance(row, list) or len(row) != 2:
                 die(f"строка в секции '{title}' должна быть [ключ, значение]")
             key, value = (str(row[0]), str(row[1]))
-            check_text(f"ключ '{key}'", key)
-            check_text(f"значение '{key}'", value)
+            label = f"'{key}'" if key else "продолжение"
+            if key:
+                check_text(f"ключ {label}", key)
+            check_text(f"значение {label}", value)
             lines.append(row_line(y, key, value, p))
             y += LINE_H
         y += LINE_H  # пустая строка между секциями
@@ -145,6 +257,9 @@ def build() -> dict[str, str]:
     blocks = config.get("block", [])
     if not blocks:
         die("src/card.toml: нет ни одной секции [[block]]")
+    blocks = expand_blocks(blocks, load_stats())
+    if not blocks:
+        die('src/card.toml: все секции пусты (для dynamic = "stats" нет данных)')
 
     rendered: dict[str, str] = {}
     for theme, palette in PALETTES.items():

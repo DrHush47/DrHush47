@@ -43,6 +43,11 @@ if ($before -eq $after) {
 
 Push-Location $root
 try {
+    # Fresh numbers before the preview; failure just keeps the previous stats.
+    python scripts\fetch_stats.py
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "Stats refresh failed - previewing the previous src\stats.json." -ForegroundColor Yellow
+    }
     python scripts\build.py
     if ($LASTEXITCODE -ne 0) {
         Write-Host "Build failed - fix src/card.toml and try again." -ForegroundColor Red

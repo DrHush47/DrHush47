@@ -12,7 +12,8 @@ param(
     [string]$Message = "chore: update profile card",
     [switch]$DryRun,
     [switch]$OpenProfile,
-    [switch]$NoBuild
+    [switch]$NoBuild,
+    [switch]$NoFetch
 )
 
 $ErrorActionPreference = 'Stop'
@@ -24,6 +25,14 @@ try {
     if (-not $NoBuild) {
         if (-not (Get-Command python -ErrorAction SilentlyContinue)) {
             throw "python not found on PATH; install Python 3.11+ or pass -NoBuild"
+        }
+        # Refresh the numbers first (REST only). A network hiccup must not block
+        # a text edit, so a failure only warns and keeps the previous stats.json.
+        if (-not $NoFetch) {
+            python scripts\fetch_stats.py
+            if ($LASTEXITCODE -ne 0) {
+                Write-Warning "stats refresh failed - keeping the previous src/stats.json"
+            }
         }
         python scripts\build.py
         if ($LASTEXITCODE -ne 0) { throw "scripts/build.py failed" }
