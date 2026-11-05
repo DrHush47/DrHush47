@@ -121,7 +121,8 @@ try {
         if ($LASTEXITCODE -ne 0) { throw "git push failed after retry" }
     }
 
-    Write-Host "Pushed. https://github.com/DrHush47"
+    Write-Host "Pushed. https://github.com/DrHush47" -ForegroundColor Green
+    Write-Host "Подсказка: GitHub CDN обновляет кеш картинки в течение 5 минут. Нажмите Ctrl+F5 в браузере." -ForegroundColor Gray
     if ($OpenProfile) { Start-Process 'https://github.com/DrHush47' }
 }
 finally {

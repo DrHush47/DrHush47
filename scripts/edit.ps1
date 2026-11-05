@@ -24,7 +24,7 @@ if (-not (Test-Path -LiteralPath $config)) {
 # Pull latest version from GitHub so we are always editing the freshest card
 Push-Location $root
 try {
-    Write-Host "Syncing with GitHub..." -ForegroundColor Cyan
+    Write-Host "Синхронизация с GitHub..." -ForegroundColor Cyan
     & (Join-Path $PSScriptRoot 'sync.ps1')
 }
 catch {
@@ -40,7 +40,7 @@ if (-not $Editor) {
 
 $before = Get-Content -LiteralPath $config -Raw -Encoding UTF8
 
-Write-Host "Editing $config ..." -ForegroundColor Cyan
+Write-Host "Открытие $config в $Editor..." -ForegroundColor Cyan
 if ($Editor -eq 'notepad') {
     Start-Process notepad -ArgumentList "`"$config`"" -Wait
 } else {
@@ -50,12 +50,14 @@ if ($Editor -eq 'notepad') {
 
 $after = Get-Content -LiteralPath $config -Raw -Encoding UTF8
 if ($before -eq $after) {
-    Write-Host "No changes. Nothing to do."
+    Write-Host "Изменений нет. Карточка не обновлялась." -ForegroundColor Gray
     exit 0
 }
 
 Push-Location $root
 try {
+    Write-Host ""
+    Write-Host "Обновление статистики и сборка SVG..." -ForegroundColor Cyan
     # Fresh numbers before the preview; failure just keeps the previous stats.
     python scripts\fetch_stats.py
     if ($LASTEXITCODE -ne 0) {
@@ -72,11 +74,11 @@ finally {
 }
 
 Write-Host ""
-Write-Host "Publish to GitHub? [y/N] " -NoNewline -ForegroundColor Yellow
+Write-Host "Опубликовать на GitHub? [y/N] " -NoNewline -ForegroundColor Yellow
 $answer = Read-Host
 if ($answer -notmatch '^(y|yes|д|да)$') {
-    Write-Host "Saved locally, not published. Run .\scripts\publish.ps1 when ready."
+    Write-Host "Сохранено локально, не опубликовано. Для публикации запустите scripts\publish.ps1"
     exit 0
 }
 
-& (Join-Path $PSScriptRoot 'publish.ps1') -Message "content: update card text"
+& (Join-Path $PSScriptRoot 'publish.ps1') -Message "content: update card text" -NoFetch
