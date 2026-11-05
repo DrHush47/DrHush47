@@ -188,7 +188,7 @@ def stats_rows(stats: dict) -> list[list[str]]:
 
     age = human_age(stats.get("created_at"))
     if age:
-        rows.append(["Age", age])
+        rows.append(["Account age", age])
 
     for key, label in (
         ("repos", "Repos"),
