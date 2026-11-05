@@ -11,7 +11,8 @@
 param(
     [string]$Message = "chore: update profile card",
     [switch]$DryRun,
-    [switch]$OpenProfile
+    [switch]$OpenProfile,
+    [switch]$NoBuild
 )
 
 $ErrorActionPreference = 'Stop'
@@ -19,6 +20,15 @@ $root = Split-Path -Parent $PSScriptRoot
 Push-Location $root
 
 try {
+    # The SVGs are generated from src/card.toml - never publish a stale card.
+    if (-not $NoBuild) {
+        if (-not (Get-Command python -ErrorAction SilentlyContinue)) {
+            throw "python not found on PATH; install Python 3.11+ or pass -NoBuild"
+        }
+        python scripts\build.py
+        if ($LASTEXITCODE -ne 0) { throw "scripts/build.py failed" }
+    }
+
     $assets = @('assets/dark_mode.svg', 'assets/light_mode.svg')
     foreach ($asset in $assets) {
         if (-not (Test-Path -LiteralPath $asset)) {
