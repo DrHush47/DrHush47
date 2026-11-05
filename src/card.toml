@@ -16,7 +16,7 @@ rows = [
   ["Name", "DrHush"],
   ["Bio", "medical student"],
   ["CLI", "Antigravity · OpenCode · Claude Code"],
-  ["On repeat", "Aphex Twin - Alberto Balsalm"],
+  ["Fav track", "Aphex Twin - Alberto Balsalm"],
 ]
 
 [[block]]
