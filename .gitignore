@@ -11,3 +11,6 @@ desktop.ini
 # Python bytecode
 __pycache__/
 *.pyc
+
+# Local handoff guide (lives next to the launcher, never published)
+AGENTS.md
