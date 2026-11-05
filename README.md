@@ -1,5 +1,5 @@
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="assets/dark_mode.svg?v=1793920212" />
-  <source media="(prefers-color-scheme: light)" srcset="assets/light_mode.svg?v=1793920212" />
-  <img alt="DrHush's GitHub profile" src="assets/dark_mode.svg?v=1793920212" />
+  <source media="(prefers-color-scheme: dark)" srcset="assets/dark_mode.svg?v=1793920229" />
+  <source media="(prefers-color-scheme: light)" srcset="assets/light_mode.svg?v=1793920229" />
+  <img alt="DrHush's GitHub profile" src="assets/dark_mode.svg?v=1793920229" />
 </picture>
