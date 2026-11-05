@@ -335,9 +335,15 @@ def update_readme(version: str) -> None:
     if not readme_path.exists():
         return
     text = readme_path.read_text(encoding="utf-8")
+    try:
+        config = tomllib.loads((SRC / "card.toml").read_text(encoding="utf-8-sig"))
+        handle = config.get("handle") or "DrHush47"
+    except Exception:
+        handle = "DrHush47"
+    raw_base = f"https://raw.githubusercontent.com/{handle}/{handle}/main"
     new_text = re.sub(
-        r'assets/(dark|light)_mode\.svg(?:\?v=[^"\'\s]*)?',
-        rf'assets/\1_mode.svg?v={version}',
+        r'(?:https://raw\.githubusercontent\.com/[^/]+/[^/]+/main/)?assets/(dark|light)_mode\.svg(?:\?v=[^"\'\s]*)?',
+        rf'{raw_base}/assets/\1_mode.svg?v={version}',
         text,
     )
     if new_text != text:
@@ -376,8 +382,9 @@ def main() -> None:
             die("устарели: " + ", ".join(stale) + " - запусти python scripts/build.py")
         print("assets are up to date")
     else:
-        # If any SVG changed, generate a unique timestamp cache buster so GitHub never serves stale images
-        if any_svg_changed:
+        # If any SVG changed or README is using legacy relative paths, update cache buster
+        readme_content = (ROOT / "README.md").read_text(encoding="utf-8") if (ROOT / "README.md").exists() else ""
+        if any_svg_changed or "https://raw.githubusercontent.com" not in readme_content:
             version = str(int(datetime.now(timezone.utc).timestamp()))
             update_readme(version)
 

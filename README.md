@@ -1,5 +1,5 @@
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="assets/dark_mode.svg?v=1793921307" />
-  <source media="(prefers-color-scheme: light)" srcset="assets/light_mode.svg?v=1793921307" />
-  <img alt="DrHush's GitHub profile" src="assets/dark_mode.svg?v=1793921307" />
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/DrHush47/DrHush47/main/assets/dark_mode.svg?v=1793921579" />
+  <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/DrHush47/DrHush47/main/assets/light_mode.svg?v=1793921579" />
+  <img alt="DrHush's GitHub profile" src="https://raw.githubusercontent.com/DrHush47/DrHush47/main/assets/dark_mode.svg?v=1793921579" />
 </picture>
