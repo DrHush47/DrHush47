@@ -328,9 +328,9 @@ def build() -> dict[str, str]:
     return rendered
 
 
-def update_readme(version: str) -> None:
-    """Updates the cache-buster query parameter (?v=...) in README.md so GitHub CDN
-    and browsers immediately load the new SVGs without 5-minute cache lag."""
+def update_readme(ref: str) -> None:
+    """Updates the SVG URLs in README.md to point to an immutable commit hash (or ref)
+    so GitHub and Fastly CDN immediately serve the fresh SVGs without any 5-minute cache lag."""
     readme_path = ROOT / "README.md"
     if not readme_path.exists():
         return
@@ -340,18 +340,23 @@ def update_readme(version: str) -> None:
         handle = config.get("handle") or "DrHush47"
     except Exception:
         handle = "DrHush47"
-    raw_base = f"https://raw.githubusercontent.com/{handle}/{handle}/main"
+    raw_base = f"https://raw.githubusercontent.com/{handle}/{handle}/{ref}"
     new_text = re.sub(
-        r'(?:https://raw\.githubusercontent\.com/[^/]+/[^/]+/main/)?assets/(dark|light)_mode\.svg(?:\?v=[^"\'\s]*)?',
-        rf'{raw_base}/assets/\1_mode.svg?v={version}',
+        r'(?:https://raw\.githubusercontent\.com/[^/]+/[^/]+/[^/]+/|assets/)(dark|light)_mode\.svg(?:\?[^"\'\s]*)?',
+        rf'{raw_base}/assets/\1_mode.svg',
         text,
     )
     if new_text != text:
         readme_path.write_text(new_text, encoding="utf-8", newline="\n")
-        print(f"updated README.md cache buster (?v={version})")
+        print(f"updated README.md ({ref[:7] if len(ref) >= 7 else ref})")
 
 
 def main() -> None:
+    if "--readme-ref" in sys.argv:
+        idx = sys.argv.index("--readme-ref")
+        if idx + 1 < len(sys.argv):
+            update_readme(sys.argv[idx + 1])
+            return
     rendered = build()
     check_only = "--check" in sys.argv[1:]
     stale: list[str] = []
@@ -382,11 +387,15 @@ def main() -> None:
             die("устарели: " + ", ".join(stale) + " - запусти python scripts/build.py")
         print("assets are up to date")
     else:
-        # If any SVG changed or README is using legacy relative paths, update cache buster
+        # If any SVG changed or README is using legacy relative paths, update README link
         readme_content = (ROOT / "README.md").read_text(encoding="utf-8") if (ROOT / "README.md").exists() else ""
         if any_svg_changed or "https://raw.githubusercontent.com" not in readme_content:
-            version = str(int(datetime.now(timezone.utc).timestamp()))
-            update_readme(version)
+            try:
+                import subprocess
+                rev = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()
+            except Exception:
+                rev = "main"
+            update_readme(rev)
 
 
 if __name__ == "__main__":

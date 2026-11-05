@@ -98,6 +98,13 @@ try {
     else {
         git commit -m $Message
         if ($LASTEXITCODE -ne 0) { throw "git commit failed" }
+        $sha = (git rev-parse HEAD).Trim()
+        python scripts\build.py --readme-ref $sha
+        if (git status --porcelain README.md) {
+            git add README.md
+            git commit -m "chore: point profile README to $sha"
+            if ($LASTEXITCODE -ne 0) { throw "git commit for README failed" }
+        }
     }
 
     if ($DryRun) {
