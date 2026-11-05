@@ -1,5 +1,5 @@
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/DrHush47/DrHush47/a25dcab4b80099be3dffc3718c5dc9418389fcce/https://raw.githubusercontent.com/DrHush47/DrHush47/94109c7d5edaa0877c7c3b1dc88d462b9c19ed4b/https://raw.githubusercontent.com/DrHush47/DrHush47/3924a1cd039cf6105b018cb9627d5ee6902417ea/assets/dark_mode.svg" />
-  <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/DrHush47/DrHush47/a25dcab4b80099be3dffc3718c5dc9418389fcce/https://raw.githubusercontent.com/DrHush47/DrHush47/94109c7d5edaa0877c7c3b1dc88d462b9c19ed4b/https://raw.githubusercontent.com/DrHush47/DrHush47/3924a1cd039cf6105b018cb9627d5ee6902417ea/assets/light_mode.svg" />
-  <img alt="DrHush's GitHub profile" src="https://raw.githubusercontent.com/DrHush47/DrHush47/a25dcab4b80099be3dffc3718c5dc9418389fcce/https://raw.githubusercontent.com/DrHush47/DrHush47/94109c7d5edaa0877c7c3b1dc88d462b9c19ed4b/https://raw.githubusercontent.com/DrHush47/DrHush47/3924a1cd039cf6105b018cb9627d5ee6902417ea/assets/dark_mode.svg" />
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/DrHush47/DrHush47/10edca29734c0823fa967ddcd902a95c9d971086/assets/dark_mode.svg" />
+  <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/DrHush47/DrHush47/10edca29734c0823fa967ddcd902a95c9d971086/assets/light_mode.svg" />
+  <img alt="DrHush's GitHub profile" src="https://raw.githubusercontent.com/DrHush47/DrHush47/10edca29734c0823fa967ddcd902a95c9d971086/assets/dark_mode.svg" />
 </picture>
