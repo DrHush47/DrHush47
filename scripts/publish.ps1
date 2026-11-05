@@ -122,7 +122,7 @@ try {
     }
 
     Write-Host "Pushed. https://github.com/DrHush47" -ForegroundColor Green
-    Write-Host "Подсказка: GitHub CDN обновляет кеш картинки в течение 5 минут. Нажмите Ctrl+F5 в браузере." -ForegroundColor Gray
+    Write-Host "Note: GitHub CDN caches profile images for up to 5 minutes. Press Ctrl+F5 in browser." -ForegroundColor Gray
     if ($OpenProfile) { Start-Process 'https://github.com/DrHush47' }
 }
 finally {
