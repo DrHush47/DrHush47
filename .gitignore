@@ -1,0 +1,9 @@
+# Local-only sources (you chose not to publish the original photo)
+source/
+# Scratch output from scripts/fetch-base.ps1
+build/
+
+# OS noise
+Thumbs.db
+desktop.ini
+.DS_Store

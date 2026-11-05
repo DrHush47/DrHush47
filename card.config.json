@@ -1,0 +1,31 @@
+{
+  "handle": "DrHush47",
+  "generator": {
+    "url": "https://gh.crafter.run",
+    "method": "POST /{handle}",
+    "params": {
+      "cols": 88,
+      "cutout": true
+    },
+    "note": "The public gh-ascii deployment renders Uptime / Languages / GitHub Stats / Last 12 Months. The panel in this repo (Name / Bio / Contact) is custom and is NOT reproducible from the API: the SVG files in assets/ are the source of truth."
+  },
+  "assets": {
+    "dark": "assets/dark_mode.svg",
+    "light": "assets/light_mode.svg"
+  },
+  "sourceImage": "source/avatar.jpg",
+  "profile": {
+    "name": "DrHush",
+    "bio": "студент мед. вуза",
+    "telegram": "@IlyaCH4",
+    "github": "github.com/DrHush47"
+  },
+  "geometry": {
+    "width": 1029,
+    "height": 526,
+    "asciiCols": 88,
+    "asciiFontSize": 8,
+    "panelX": 482.4,
+    "panelFontSize": 16
+  }
+}

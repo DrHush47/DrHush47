@@ -1,0 +1,4 @@
+# Normalize text to LF so the committed bytes do not depend on the OS.
+* text=auto eol=lf
+*.jpg binary
+*.png binary
