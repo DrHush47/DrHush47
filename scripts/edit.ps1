@@ -21,6 +21,19 @@ if (-not (Test-Path -LiteralPath $config)) {
     exit 1
 }
 
+# Pull latest version from GitHub so we are always editing the freshest card
+Push-Location $root
+try {
+    Write-Host "Syncing with GitHub..." -ForegroundColor Cyan
+    & (Join-Path $PSScriptRoot 'sync.ps1')
+}
+catch {
+    Write-Warning "Initial sync warning: $_"
+}
+finally {
+    Pop-Location
+}
+
 if (-not $Editor) {
     $Editor = if (Get-Command code -ErrorAction SilentlyContinue) { 'code' } else { 'notepad' }
 }

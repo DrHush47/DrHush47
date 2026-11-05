@@ -21,21 +21,11 @@ $root = Split-Path -Parent $PSScriptRoot
 Push-Location $root
 
 try {
-    # The daily workflow commits "chore: refresh stats" on its own, so a plain
-    # push would be rejected as non-fast-forward. Sync first, while the working
-    # tree is still clean, then rebuild on top of the bot's commit.
+    # Sync with GitHub: pull the bot's commits while preserving any uncommitted hand edits.
     if (@(git remote) -contains 'origin') {
-        if (git status --porcelain) {
-            Write-Warning "Uncommitted changes present - skipping the sync with origin."
-        }
-        else {
-            git fetch origin --quiet 2>$null
-            if ($LASTEXITCODE -eq 0 -and (git rev-parse --verify --quiet origin/main)) {
-                git merge --ff-only origin/main --quiet 2>$null
-                if ($LASTEXITCODE -ne 0) {
-                    Write-Warning "Local main diverged from origin/main - fix the branch before publishing."
-                }
-            }
+        & (Join-Path $PSScriptRoot 'sync.ps1')
+        if ($LASTEXITCODE -ne 0) {
+            Write-Warning "Sync with origin reported issues or remote was unreachable."
         }
     }
 
@@ -116,7 +106,20 @@ try {
     }
 
     git push -u origin main
-    if ($LASTEXITCODE -ne 0) { throw "git push failed" }
+    if ($LASTEXITCODE -ne 0) {
+        Write-Warning "Push rejected (likely concurrent bot commit on origin). Re-syncing and retrying once..."
+        git reset --soft HEAD~1
+        & (Join-Path $PSScriptRoot 'sync.ps1')
+        if (-not $NoBuild) {
+            python scripts\build.py
+            if ($LASTEXITCODE -ne 0) { throw "scripts/build.py failed during retry" }
+        }
+        git add -A
+        git commit -m $Message
+        if ($LASTEXITCODE -ne 0) { throw "git commit failed during retry" }
+        git push -u origin main
+        if ($LASTEXITCODE -ne 0) { throw "git push failed after retry" }
+    }
 
     Write-Host "Pushed. https://github.com/DrHush47"
     if ($OpenProfile) { Start-Process 'https://github.com/DrHush47' }
