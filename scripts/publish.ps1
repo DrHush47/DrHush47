@@ -21,6 +21,24 @@ $root = Split-Path -Parent $PSScriptRoot
 Push-Location $root
 
 try {
+    # The daily workflow commits "chore: refresh stats" on its own, so a plain
+    # push would be rejected as non-fast-forward. Sync first, while the working
+    # tree is still clean, then rebuild on top of the bot's commit.
+    if (@(git remote) -contains 'origin') {
+        if (git status --porcelain) {
+            Write-Warning "Uncommitted changes present - skipping the sync with origin."
+        }
+        else {
+            git fetch origin --quiet 2>$null
+            if ($LASTEXITCODE -eq 0 -and (git rev-parse --verify --quiet origin/main)) {
+                git merge --ff-only origin/main --quiet 2>$null
+                if ($LASTEXITCODE -ne 0) {
+                    Write-Warning "Local main diverged from origin/main - fix the branch before publishing."
+                }
+            }
+        }
+    }
+
     # The SVGs are generated from src/card.toml - never publish a stale card.
     if (-not $NoBuild) {
         if (-not (Get-Command python -ErrorAction SilentlyContinue)) {
