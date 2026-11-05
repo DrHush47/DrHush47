@@ -208,6 +208,23 @@ def load_previous() -> dict:
     return data if isinstance(data, dict) else {}
 
 
+def is_fresh(previous: dict, max_age_seconds: int = 1800) -> bool:
+    """True if stats were refreshed less than 30 minutes ago and no force flag was passed."""
+    if os.environ.get("GITHUB_TOKEN") or os.environ.get("GH_TOKEN"):
+        return False
+    if "--force" in sys.argv:
+        return False
+    gen = previous.get("generated_at")
+    if not gen or not isinstance(gen, str):
+        return False
+    try:
+        dt = datetime.fromisoformat(gen.replace("Z", "+00:00"))
+        age = (datetime.now(timezone.utc) - dt).total_seconds()
+        return age < max_age_seconds
+    except Exception:
+        return False
+
+
 def main() -> None:
     global LOGIN
 
@@ -218,6 +235,10 @@ def main() -> None:
         LOGIN = DEFAULT_LOGIN
 
     previous = load_previous()
+    if is_fresh(previous):
+        print(f"stats are fresh ({previous.get('generated_at', '')}) - keeping src/stats.json")
+        return
+
     cache = previous.get("loc_cache")
     if not isinstance(cache, dict):
         cache = {}
@@ -229,8 +250,12 @@ def main() -> None:
         repos = owned_repos(LOGIN)
         commits = commit_count(LOGIN, previous)
     except ApiError as exc:
-        print(f"error: {exc}", file=sys.stderr)
-        print("stats not updated - the card keeps the current src/stats.json", file=sys.stderr)
+        if exc.status == 403:
+            print("Лимит запросов к GitHub API исчерпан. Оставлены сохранённые числа статистики.")
+        else:
+            print(f"Предупреждение при обновлении статистики: {exc}. Оставлены сохранённые числа статистики.")
+        if previous:
+            return
         raise SystemExit(1) from None
 
     stars = sum(int(r.get("stargazers_count") or 0) for r in repos if not r.get("fork"))
