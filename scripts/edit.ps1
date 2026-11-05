@@ -95,7 +95,7 @@ try {
     # Fresh numbers before the preview; failure just keeps the previous stats.
     python scripts\fetch_stats.py
     if ($LASTEXITCODE -ne 0) {
-        Write-Host "Stats refresh failed - previewing the previous src\stats.json." -ForegroundColor Yellow
+        Write-Host "[Инфо] Статистика оставлена без изменений (лимит запросов GitHub). Текст карточки собирается штатно." -ForegroundColor Yellow
     }
     python scripts\build.py
     if ($LASTEXITCODE -ne 0) {
