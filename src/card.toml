@@ -15,7 +15,7 @@ title = "DrHush47"
 rows = [
   ["Name", "DrHush"],
   ["Bio", "medical student"],
-  ["AI CLI", "Antigravity · OpenCode · Claude Code"],
+  ["CLI", "Antigravity · OpenCode · Claude Code"],
 ]
 
 [[block]]
