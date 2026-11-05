@@ -328,34 +328,28 @@ def build() -> dict[str, str]:
     return rendered
 
 
-def update_readme(version: str, check_only: bool = False) -> bool:
-    """Adds or updates a cache-buster query (?v=hash) in README.md so GitHub and
-    browsers never serve stale SVGs from cache."""
+def update_readme(version: str) -> None:
+    """Updates the cache-buster query parameter (?v=...) in README.md so GitHub CDN
+    and browsers immediately load the new SVGs without 5-minute cache lag."""
     readme_path = ROOT / "README.md"
     if not readme_path.exists():
-        return True
+        return
     text = readme_path.read_text(encoding="utf-8")
     new_text = re.sub(
-        r'assets/(dark|light)_mode\.svg(?:\?v=[a-f0-9]+)?',
+        r'assets/(dark|light)_mode\.svg(?:\?v=[^"\'\s]*)?',
         rf'assets/\1_mode.svg?v={version}',
         text,
     )
-    if check_only:
-        return new_text == text
     if new_text != text:
         readme_path.write_text(new_text, encoding="utf-8", newline="\n")
         print(f"updated README.md cache buster (?v={version})")
-    return True
 
 
 def main() -> None:
     rendered = build()
     check_only = "--check" in sys.argv[1:]
     stale: list[str] = []
-
-    version = hashlib.sha256(
-        (rendered.get("dark", "") + rendered.get("light", "")).encode("utf-8")
-    ).hexdigest()[:8]
+    any_svg_changed = False
 
     for theme, content in rendered.items():
         path = ASSETS / f"{theme}_mode.svg"
@@ -364,25 +358,28 @@ def main() -> None:
         except ElementTree.ParseError as exc:
             die(f"{path.name}: невалидный XML после сборки ({exc})")
 
-        if check_only:
-            current = path.read_text(encoding="utf-8") if path.exists() else ""
-            if current != content:
+        current = path.read_text(encoding="utf-8") if path.exists() else ""
+        if current != content:
+            any_svg_changed = True
+            if check_only:
                 stale.append(path.name)
-            continue
-
-        tmp = path.with_suffix(".svg.tmp")
-        tmp.write_text(content, encoding="utf-8", newline="\n")
-        tmp.replace(path)
-        print(f"built {path.relative_to(ROOT)} ({len(content.encode('utf-8')):,} bytes)")
+                continue
+            tmp = path.with_suffix(".svg.tmp")
+            tmp.write_text(content, encoding="utf-8", newline="\n")
+            tmp.replace(path)
+            print(f"built {path.relative_to(ROOT)} ({len(content.encode('utf-8')):,} bytes)")
+        elif not check_only:
+            print(f"kept {path.relative_to(ROOT)} (unchanged)")
 
     if check_only:
-        if not update_readme(version, check_only=True):
-            stale.append("README.md")
         if stale:
             die("устарели: " + ", ".join(stale) + " - запусти python scripts/build.py")
         print("assets are up to date")
     else:
-        update_readme(version, check_only=False)
+        # If any SVG changed, generate a unique timestamp cache buster so GitHub never serves stale images
+        if any_svg_changed:
+            version = str(int(datetime.now(timezone.utc).timestamp()))
+            update_readme(version)
 
 
 if __name__ == "__main__":
