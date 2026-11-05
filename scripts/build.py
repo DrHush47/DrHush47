@@ -341,9 +341,14 @@ def update_readme(ref: str) -> None:
     except Exception:
         handle = "DrHush47"
     raw_base = f"https://raw.githubusercontent.com/{handle}/{handle}/{ref}"
+
+    def repl(m: re.Match) -> str:
+        theme = m.group(1) or m.group(2)
+        return f"{raw_base}/assets/{theme}_mode.svg"
+
     new_text = re.sub(
-        r'(?:https://raw\.githubusercontent\.com/[^/]+/[^/]+/[^/]+/|assets/)(dark|light)_mode\.svg(?:\?[^"\'\s]*)?',
-        rf'{raw_base}/assets/\1_mode.svg',
+        r'https?://\S+?/assets/(dark|light)_mode\.svg(?:\?\S*)?|assets/(dark|light)_mode\.svg(?:\?\S*)?',
+        repl,
         text,
     )
     if new_text != text:
